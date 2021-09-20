@@ -1,0 +1,79 @@
+---
+# Playbook to install docker on Ubuntu 20.04, 18.04 and 16.04 servers
+# The GnuPGP and Python3-pip was needed in 18.04 
+# they were not needed in 16.05
+# Author: Fred Erlend Rundhaug
+# Version: 1.1
+
+- hosts: CPEdocker 
+  become: true
+  tasks:
+
+  - name: Group by version
+    group_by:
+      key: os_ver_{{ ansible_facts['distribution_version'] }}
+
+  - name: Remove old docker versions
+    apt:
+      name: ['docker','docker-engine','docker.io','containerd','runc']
+      state: absent
+      update_cache: yes
+    when:
+      groups['os_ver_20.04'] is defined
+
+  - name: Install prerequsites
+    apt:
+      name: ['apt-transport-https','ca-certificates','curl','gnupg','lsb-release']
+      state: present
+      update_cache: yes
+    when:
+      groups['os_ver_20.04'] is defined
+
+  - name: Install GnuPGP
+    apt:
+      name: gnupg
+      state: present
+      update_cache: yes
+    when:
+      groups['os_ver_18.04'] is defined
+
+  - name: Add Docker GPG key
+    apt_key: 
+      url: https://download.docker.com/linux/ubuntu/gpg
+      state: present
+ 
+  - name: Add Docker APT repository
+    apt_repository:
+      repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ansible_distribution_release}} stable
+
+  - name: Install list of packages 20.04
+    apt:
+      name: ['docker-ce','docker-ce-cli','containerd.io']
+      state: present
+      update_cache: yes
+    when:
+      groups['os_ver_20.04'] is defined
+
+  - name: Install list of packages 18.04
+    apt:
+      name: ['apt-transport-https','ca-certificates','curl','software-properties-common','docker-ce','python-pip','python3-pip']
+      state: present
+      update_cache: yes
+    when:
+      groups['os_ver_18.04'] is defined
+
+  - name: Install list of packages 16.04
+    apt:
+      name: ['apt-transport-https','ca-certificates','curl','software-properties-common','docker-ce','python-pip']
+      state: present
+      update_cache: yes
+    when:
+      groups['os_ver_16.04'] is defined
+
+  - name: pip install docker
+    pip: 
+      name=docker
+      name=docker-compose
+    when:
+      groups['os_ver_16.04'] is defined
+
